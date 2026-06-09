@@ -45,16 +45,22 @@ pipeline {
         }
 
         stage('Deploy with Helm') {
-            steps {
-                sh """
-                    git clone ${HELM_REPO} helm-charts
-                    helm upgrade --install frontend helm-charts/frontend \
-                        --set image.repository=${HARBOR_REGISTRY}/${HARBOR_PROJECT}/${IMAGE_NAME} \
-                        --set image.tag=${IMAGE_TAG} \
-                        --kubeconfig /var/lib/jenkins/.kube/config
-                """
-            }
-        }
+    		steps {
+        		withCredentials([sshUserPrivateKey(
+            			credentialsId: 'github-ssh',
+            			keyFileVariable: 'SSH_KEY'
+        		)]) {
+            			sh """
+                			GIT_SSH_COMMAND="ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no" \
+                			git clone ${HELM_REPO} helm-charts
+                			helm upgrade --install frontend helm-charts/frontend \
+                    				--set image.repository=${HARBOR_REGISTRY}/${HARBOR_PROJECT}/${IMAGE_NAME} \
+                    				--set image.tag=${IMAGE_TAG} \
+                    				--kubeconfig /var/lib/jenkins/.kube/config
+            			"""
+        		}
+    		}
+	}
     }
 
     post {
