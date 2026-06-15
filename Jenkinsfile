@@ -1,6 +1,6 @@
 pipeline {
     agent {
-        label 'jenkins-worker'
+        label 'docker-agent'
     }
 
     environment {
