@@ -95,7 +95,7 @@ pipeline {
                 			helm upgrade --install frontend helm-charts/frontend \
                     				--set image.repository=${HARBOR_REGISTRY}/${HARBOR_PROJECT}/${IMAGE_NAME} \
                     				--set image.tag=${IMAGE_TAG} \
-                    				--kubeconfig /home/leo/.kube/config
+                    				--kubeconfig /home/jenkins/.kube/config
             			"""
         		}
     		}
