@@ -30,13 +30,16 @@ pipeline {
 	stage('SonarQube Analysis') {
 	    steps {
 	        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-	            withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
+	            withCredentials([string(credentialsId: 'vault-token', variable: 'VAULT_TOKEN')]) {
 	                sh """
+	                    export VAULT_ADDR=http://nexus:8200
+	                    export VAULT_TOKEN=\${VAULT_TOKEN}
+	                    SONAR_TOKEN=\$(vault kv get -field=token secret/corona-tracker/sonarqube)
 	                    sonar-scanner \
 	                        -Dsonar.projectKey=corona-tracker-frontend \
 	                        -Dsonar.sources=src \
 	                        -Dsonar.host.url=http://sonarqube:9000 \
-	                        -Dsonar.token=\${SONAR_TOKEN} \
+	                        -Dsonar.token=\$SONAR_TOKEN \
 	                        -Dsonar.nodejs.executable=\$(which node)
 	                """
 	            }
@@ -55,25 +58,29 @@ pipeline {
         }
 
         stage('Push to Harbor') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'harbor-credentials',
-                    usernameVariable: 'HARBOR_USER',
-                    passwordVariable: 'HARBOR_PASS'
-                )]) {
-                    sh """
-                        docker login ${HARBOR_REGISTRY} -u ${HARBOR_USER} -p ${HARBOR_PASS}
-                        docker push ${HARBOR_REGISTRY}/${HARBOR_PROJECT}/${IMAGE_NAME}:${IMAGE_TAG}
-                        docker push ${HARBOR_REGISTRY}/${HARBOR_PROJECT}/${IMAGE_NAME}:latest
-                    """
-                }
-            }
-        }
+	    steps {
+	        withCredentials([string(credentialsId: 'vault-token', variable: 'VAULT_TOKEN')]) {
+	            sh """
+	                export VAULT_ADDR=http://nexus:8200
+	                export VAULT_TOKEN=\${VAULT_TOKEN}
+	                HARBOR_USER=\$(vault kv get -field=username secret/corona-tracker/harbor)
+	                HARBOR_PASS=\$(vault kv get -field=password secret/corona-tracker/harbor)
+	                docker login ${HARBOR_REGISTRY} -u \$HARBOR_USER -p \$HARBOR_PASS
+	                docker push ${HARBOR_REGISTRY}/${HARBOR_PROJECT}/${IMAGE_NAME}:${IMAGE_TAG}
+	                docker push ${HARBOR_REGISTRY}/${HARBOR_PROJECT}/${IMAGE_NAME}:latest
+	            """
+	        }
+	    }
+	}
 
 	stage('Sign Image - Cosign') {
 	    steps {
-	        withCredentials([string(credentialsId: 'cosign-password', variable: 'COSIGN_PASSWORD')]) {
+	        withCredentials([string(credentialsId: 'vault-token', variable: 'VAULT_TOKEN')]) {
 	            sh """
+	                export VAULT_ADDR=http://nexus:8200
+	                export VAULT_TOKEN=\${VAULT_TOKEN}
+	                COSIGN_PASSWORD=\$(vault kv get -field=password secret/corona-tracker/cosign)
+	                export COSIGN_PASSWORD
 	                cosign sign --key /etc/cosign/cosign.key \
 	                    -a "pipeline=jenkins" \
 	                    -a "build=${IMAGE_TAG}" \
