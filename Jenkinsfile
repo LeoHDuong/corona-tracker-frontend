@@ -29,17 +29,18 @@ pipeline {
 
 	stage('SonarQube Analysis') {
 	    steps {
-		catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-		    withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
-	            	sh """
+	        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+	            withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
+	                sh """
 	                    sonar-scanner \
-	                    	-Dsonar.projectKey=corona-tracker-frontend \
-	                    	-Dsonar.sources=src \
-	                    	-Dsonar.host.url=http://sonarqube:9000 \
-	                    	-Dsonar.token=\${SONAR_TOKEN}
-	            	"""	        
-		    }
-		}
+	                        -Dsonar.projectKey=corona-tracker-frontend \
+	                        -Dsonar.sources=src \
+	                        -Dsonar.host.url=http://sonarqube:9000 \
+	                        -Dsonar.token=\${SONAR_TOKEN} \
+	                        -Dsonar.nodejs.executable=\$(which node)
+	                """
+	            }
+	        }
 	    }
 	}
 
