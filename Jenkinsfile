@@ -98,21 +98,25 @@ pipeline {
 	}
 
         stage('Deploy with Helm') {
-    		steps {
-        		withCredentials([sshUserPrivateKey(
-            			credentialsId: 'github-ssh',
-            			keyFileVariable: 'SSH_KEY'
-        		)]) {
-            			sh """
-                			GIT_SSH_COMMAND="ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no" \
-                			git clone ${HELM_REPO} helm-charts
-                			helm upgrade --install frontend helm-charts/frontend \
-                    				--set image.repository=${HARBOR_REGISTRY}/${HARBOR_PROJECT}/${IMAGE_NAME} \
-                    				--set image.tag=${IMAGE_TAG} \
-                    				--kubeconfig /home/jenkins/.kube/config
-            			"""
-        		}
-    		}
+	    steps {
+	        sh """
+	            helm repo add nexus-helm http://nexus:8081/repository/helm-charts/ --username admin --password 'LuckyAdudu123.'
+	            helm repo update
+	
+	            helm template frontend nexus-helm/webapp \
+	                --version 0.1.0 \
+	                -f values.yaml \
+	                --set image.repository=${HARBOR_REGISTRY}/${HARBOR_PROJECT}/${IMAGE_NAME} \
+	                --set image.tag=${IMAGE_TAG}
+	
+	            helm upgrade --install frontend nexus-helm/webapp \
+	                --version 0.1.0 \
+	                -f values.yaml \
+	                --set image.repository=${HARBOR_REGISTRY}/${HARBOR_PROJECT}/${IMAGE_NAME} \
+	                --set image.tag=${IMAGE_TAG} \
+	                --kubeconfig /home/jenkins/.kube/config
+	        """
+	    }
 	}
     }
 
