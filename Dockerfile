@@ -7,6 +7,9 @@ WORKDIR /app
 # add `/app/node_modules/.bin` to $PATH
 ENV PATH /app/node_modules/.bin:$PATH
 
+# Copy npmrc for Nexus proxy
+COPY .npmrc ./
+
 # install app dependencies
 COPY package.json ./
 COPY package-lock.json ./
